@@ -1,15 +1,13 @@
 #!/usr/bin/env python3
 
 DB_FILE = './ucpay.sqlite'
-# @@@@@@@ 2010 uses a different format
-YEARS = range(2004, 2010)
-
-# @@@@@@@@ csv: append &csv=true
+# 2009 and 2010 use a different format
+YEARS = range(2004, 2011)
 
 import sqlite3
 import csv
 from zipfile import ZipFile
-from io import TextIOWrapper
+from codecs import iterdecode
 
 def load_data_for_year(db, y):
 	'''Loads data for the year from the CSV file in the current directory into the sqlite DB.'''
@@ -30,17 +28,13 @@ def load_data_for_year(db, y):
 		,	extra_pay NUMERIC
 		)
 	'''.format(y=y))
-	datafile = ZipFile('./ucpay{y}.csv.zip'.format(y=y), mode='r').open('ucpay.csv', mode='r')
+	inner_filename = 'ucpay.csv' if y != 2010 else 'ucpay2010.csv'
+	datafile = iterdecode(ZipFile('./ucpay{y}.csv.zip'.format(y=y), mode='r').open(inner_filename, mode='r'), 'utf8')
+	data = csv.reader(datafile, dialect=(csv.excel_tab if y == 2010 else csv.excel))
+
+	if y != 2009:
+		print(next(data))	# skip header
 	
-	# Kludge to make it work on python 3.1
-	datafile.readable = lambda: True
-	datafile.writable = lambda: False
-	datafile.seekable = lambda: False
-	datafile.read1 = datafile.read
-	
-	data = csv.reader(TextIOWrapper(datafile, newline=''))
-	#data = csv.reader(open(, 'rt', newline=''))
-	print(next(data))	# skip header
 	for e in data:
 		assert len(e) == len(["ID","year","campus","name","title","gross","base","overtime","extra","exclude"])
 		# Skip tuples with "exclude"=="1", which are grad students and temporary employees rather than research professors
