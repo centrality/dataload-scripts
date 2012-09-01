@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 
 DB_FILE = './ucpay.sqlite'
-# 2009 and 2010 use a different format
-YEARS = range(2004, 2011)
+# 2009 and 2010,2011 use a different format
+YEARS = range(2004, 2012)
 
 import sqlite3
 import csv
@@ -28,9 +28,9 @@ def load_data_for_year(db, y):
 		,	extra_pay NUMERIC
 		)
 	'''.format(y=y))
-	inner_filename = 'ucpay.csv' if y != 2010 else 'ucpay2010.csv'
+	inner_filename = 'ucpay.csv' if y < 2010 else 'ucpay{0}.csv'.format(y)
 	datafile = iterdecode(ZipFile('./ucpay{y}.csv.zip'.format(y=y), mode='r').open(inner_filename, mode='r'), 'utf8')
-	data = csv.reader(datafile, dialect=(csv.excel_tab if y == 2010 else csv.excel))
+	data = csv.reader(datafile, dialect=(csv.excel_tab if y >= 2010 else csv.excel))
 
 	if y != 2009:
 		print(next(data))	# skip header
