@@ -9,14 +9,12 @@ import csv
 from zipfile import ZipFile
 from codecs import iterdecode
 
-def load_data_for_year(db, y):
-	'''Loads data for the year from the CSV file in the current directory into the sqlite DB.'''
-	print('Loading data for {y}'.format(y=y))
-	
-	db.execute('DROP TABLE IF EXISTS ucpay{y}'.format(y=y))
+def create_ucpay_table(db):
+	'''Creates in the sqlite DB file a "ucpay" table that data will be stored into.'''
+	db.execute('DROP TABLE IF EXISTS ucpay')
 	# Some of these columns probably won't be needed, but we may as well store them.
 	db.execute('''
-		CREATE TABLE ucpay{y}
+		CREATE TABLE ucpay
 		(	ucpay_id INT PRIMARY KEY
 		,	year INT
 		,	campus TEXT
@@ -27,7 +25,12 @@ def load_data_for_year(db, y):
 		,	overtime_pay NUMERIC
 		,	extra_pay NUMERIC
 		)
-	'''.format(y=y))
+	''')
+
+def load_data_for_year(db, y):
+	'''Loads data for the year from the CSV file in the current directory into the sqlite DB.'''
+	print('Loading data for {y}'.format(y=y))
+	
 	inner_filename = 'ucpay.csv' if y < 2010 else 'ucpay{0}.csv'.format(y)
 	datafile = iterdecode(ZipFile('./ucpay{y}.csv.zip'.format(y=y), mode='r').open(inner_filename, mode='r'), 'utf8')
 	data = csv.reader(datafile, dialect=(csv.excel_tab if y >= 2010 else csv.excel))
@@ -40,18 +43,15 @@ def load_data_for_year(db, y):
 		# Skip tuples with "exclude"=="1", which are grad students and temporary employees rather than research professors
 		if e[-1] != '1':
 			assert e[-1] == '0'
-			db.execute('INSERT INTO ucpay{y} VALUES (?,?,?,?,?,?,?,?,?)'.format(y=y), e[:-1])
+			assert e[1] == str(y), "\tBogus year '{0}'; should be '{1}'".format(e[1], str(y))
+			db.execute('INSERT INTO ucpay VALUES (?,?,?,?,?,?,?,?,?)', e[:-1])
 	db.commit()
 	
 	print('	done')
 
-
-
-
-
-
 if __name__ == '__main__':
 	db = sqlite3.connect(DB_FILE)
+	create_ucpay_table(db)
 	for y in YEARS:
 		load_data_for_year(db, y)
 	print('All done')
