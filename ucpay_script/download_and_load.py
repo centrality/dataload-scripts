@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
+import subprocess as S
+
 DB_FILE = './ucpay.sqlite'
 # 2009 and 2010,2011 use a different format
 YEARS = range(2004, 2012)
@@ -8,6 +10,11 @@ import sqlite3
 import csv
 from zipfile import ZipFile
 from codecs import iterdecode
+
+def download():
+	'''Downloads the raw data files from ucpay.globl.org into the current working directory.'''
+	uris = list(map("http://ucpay.globl.org/ucpay{0}.csv.zip".format, YEARS))
+	S.check_call(["wget"] + uris)
 
 def create_ucpay_table(db):
 	'''Creates in the sqlite DB file a "ucpay" table that data will be stored into.'''
@@ -50,6 +57,7 @@ def load_data_for_year(db, y):
 	print('	done')
 
 if __name__ == '__main__':
+	download()
 	db = sqlite3.connect(DB_FILE)
 	create_ucpay_table(db)
 	for y in YEARS:
